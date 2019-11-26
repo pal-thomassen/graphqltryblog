@@ -147,7 +147,7 @@ An example of a GraphQl response can be.
 ```json
 {
   "data": {
-      batchResults: {
+      "batchResults": {
        "1": "data1",
        "2": "data2",
        "4": "data4"
