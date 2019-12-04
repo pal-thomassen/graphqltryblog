@@ -138,38 +138,10 @@ We are forced by the compiler to handle the exceptions early and cannot write co
 
 Writing code that does not throw exceptions might be a goal in itself. It makes the signatures of our methods honest. They no longer throw `RuntimeException`s you might not notice. On the flip side the code is now filled with `Try` everywhere, which might be problematic since it is often easier to just throw a `RuntimeException` and have it handled automatically by some root exception handler rendering an error in the GraphQL-field, after stripping away stack traces of course. I think these two styles boils down to personal preferences – the end result in the API might be the same. 
 
-### Complex resolvers using data loaders. 
-
-When writing more complex resolvers which for example fetches from an external API, but we need to batch our calls to the external API because of resource constraints. When calling this external API we must accept that each batch may fail independently of each other. However in our application we would like to get a list with all the results even tough we need to batch them for the external API. When we are using exceptions for this what will happen if one of the batches fail? We would throw an exception and let it bubble to the top and our result to the end user would be an error page. If we however wrap each result in a Try, if one batched request fails, we still get a list with all the remaining results and exceptions for the rest. This plays nicely with GraphQls ability to get back partial results. 
-
-An example of a GraphQl response can be.
-
-```json
-{
-  "data": {
-      "batchResults": {
-       "1": "data1",
-       "2": "data2",
-       "4": "data4"
-      }
-  },
-  "errors": {
-    "message": {
-      "code": 500,
-      "errorMessage": "An error occurred when trying to call external service. Try again later."
-    }
-  }
-}
-
-```
-Here we have gotten the results we were able to fetch and errors for those we could not fetch. The client is then able to make due with what it received and can judge for itself how to show the user the error and the results. 
-
-When coding a resolver for this in Java it is much easier to wrap the exceptions as part of the normal response in order to support partial results and also have one code path for both the results and the exceptions. In this case the exceptions are not something special which occurs in our codebase, exceptions is something we expect to get back and handle. 
-
 ### But java can still throw errors
 
-Yes, the JVM can still produce `OutOfMemoryExceptions` and the like. There might be hidden `RuntimeExceptions` from external libraries being thrown which we do not know where to catch in our code. I would argue that these exceptions are fine, since when they are severe enough like an `OutOfMemoryException` there is not much we can do in code other than to crash. If you have external dependencies which throws `RunTimeExceptions` you can either use the Try-monad as best you can and encapsulate them or just let them bubble to the top and be handled by your global exception handler. Since this is Java you should probably have a global exception handler anyway.  
+Yes, the JVM can still produce `OutOfMemoryExceptions` and the like. There might be hidden `RuntimeExceptions` from external libraries being thrown which we do not know where to catch in our code. I would argue that these exceptions are fine, since when they are severe enough like an `OutOfMemoryException` there is not much we can do in code other than to crash. If you have external dependencies which throws `RunTimeExceptions` you can either use the Try-monad as best you can and encapsulate them or just let them bubble to the top and be handled by your global exception handler. Since this is Java you should probably have a global exception handler anyway.
 
-### In the end the answer is `it depends`
+### In the end the answer is it `depends`
 
 Should you embrace writing functional code in a non-functional language like java? Are the functional paradigm really that much better than traditional object oriented code? The answer is off course it depends. It depends on how familiar you are with functional languages and concepts, how is the rest of the code base structured? Are you starting a new project, or is this a huge existing code base which has sophisticated error handling in place already? Introducing something completely different can make the code base as a whole harder to read since it now has two different ways of dealing with exceptions. For me personally writing more functional java code has been quite fun and a big learning experience. For our GraphQL-API using the Try-monad for exception handling, it has been much easier for us to have control over the response returned to the user and the tests are easier to write since an exception is just like a normal response.
